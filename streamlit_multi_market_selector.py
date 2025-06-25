@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import tushare as ts
@@ -6,8 +5,8 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import os
 
-# 初始化 Tushare
-ts.set_token(os.getenv("TUSHARE_TOKEN", "your_token_here"))
+# 使用 Streamlit Cloud 的 secrets
+ts.set_token(st.secrets["TUSHARE_TOKEN"])
 pro = ts.pro_api()
 
 # 页面配置
@@ -29,21 +28,21 @@ if market == "A股":
 st.info(f"📡 当前市场：{market}，正在获取数据...")
 
 if market == "A股":
-    # 获取基础与财务数据
-    stock_basic = pro.stock_basic(exchange='', list_status='L',
-                                  fields='ts_code,symbol,name,area,industry,list_date')
-    financials = pro.fina_indicator(start_date='20240101', end_date='20241231')
-
-    # 合并数据
-    df = pd.merge(stock_basic, financials, on='ts_code', how='inner')
-    df_filtered = df[
-        (df['roe'] > roe_min) &
-        (df['pe'] < pe_max) &
-        (df['grossprofit_margin'] > gross_min)
-    ]
-    st.success(f"✅ 共筛选出 {len(df_filtered)} 只符合条件的 A 股股票")
-    st.dataframe(df_filtered[['ts_code', 'name', 'industry', 'roe', 'pe', 'grossprofit_margin']]
-                 .sort_values(by='roe', ascending=False).reset_index(drop=True))
+    try:
+        stock_basic = pro.stock_basic(exchange='', list_status='L',
+                                      fields='ts_code,symbol,name,area,industry,list_date')
+        financials = pro.fina_indicator(start_date='20240101', end_date='20241231')
+        df = pd.merge(stock_basic, financials, on='ts_code', how='inner')
+        df_filtered = df[
+            (df['roe'] > roe_min) &
+            (df['pe'] < pe_max) &
+            (df['grossprofit_margin'] > gross_min)
+        ]
+        st.success(f"✅ 共筛选出 {len(df_filtered)} 只符合条件的 A 股股票")
+        st.dataframe(df_filtered[['ts_code', 'name', 'industry', 'roe', 'pe', 'grossprofit_margin']]
+                     .sort_values(by='roe', ascending=False).reset_index(drop=True))
+    except Exception as e:
+        st.error("🚫 获取 A 股数据失败：" + str(e))
 
 elif market == "港股":
     try:
@@ -54,8 +53,11 @@ elif market == "港股":
         st.error("🚫 获取港股数据失败：" + str(e))
 
 elif market == "美股":
-    tickers = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"]
-    data = {t: yf.Ticker(t).info for t in tickers}
-    df_us = pd.DataFrame(data).T
-    st.success(f"✅ 当前展示精选美股 {len(tickers)} 只")
-    st.dataframe(df_us[['symbol', 'shortName', 'marketCap', 'forwardPE', 'sector']])
+    try:
+        tickers = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"]
+        data = {t: yf.Ticker(t).info for t in tickers}
+        df_us = pd.DataFrame(data).T
+        st.success(f"✅ 当前展示精选美股 {len(tickers)} 只")
+        st.dataframe(df_us[['symbol', 'shortName', 'marketCap', 'forwardPE', 'sector']])
+    except Exception as e:
+        st.error("🚫 获取美股数据失败：" + str(e))
