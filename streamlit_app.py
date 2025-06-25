@@ -1,11 +1,10 @@
+
 import streamlit as st
 import pandas as pd
 import tushare as ts
 import yfinance as yf
-import matplotlib.pyplot as plt
-import os
 
-# 使用 Streamlit Cloud 的 secrets
+# 初始化 Tushare
 ts.set_token(st.secrets["TUSHARE_TOKEN"])
 pro = ts.pro_api()
 
@@ -18,7 +17,9 @@ st.markdown("基于 Tushare 与 Yahoo Finance 接口支持 **A股 / 港股 / 美
 st.sidebar.title("📋 选股条件")
 market = st.sidebar.radio("选择市场", ["A股", "港股", "美股"])
 
-# 设置筛选条件（仅对 A股开放财务筛选）
+roe_min, pe_max, gross_min = 0, 0, 0
+
+# 设置筛选条件（仅对 A股开放）
 if market == "A股":
     roe_min = st.sidebar.slider("ROE（净资产收益率）>%", 0, 40, 15)
     pe_max = st.sidebar.slider("PE（市盈率）<", 0, 100, 25)
